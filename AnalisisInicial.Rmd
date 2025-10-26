@@ -1,0 +1,126 @@
+---
+title: "Análisis Inicial"
+author: "Ph.D. Jorge Chávez"
+date: "2025-10-25"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
+suppressPackageStartupMessages({
+  library(dplyr)
+  library(ggplot2)
+  library(kableExtra)
+  library(readr)
+  library(tidyr)
+  library(purrr)
+})
+```
+
+## Análisis inicial de la información
+
+Procesamiento de la base de datos
+
+### Lectura de los archivos
+
+```{r binded tables}
+data_path <- "baseDeDatos/Manufactureros/conjunto_de_datos/"
+
+csv_files <- list.files(path = data_path, pattern = "\\.csv$", full.names = TRUE)
+if (length(csv_files) == 0) stop("No CSV files found in: ", data_path)
+
+dfImmexFull <- purrr::map_dfr(csv_files, ~ readr::read_csv(.x, show_col_types = FALSE))
+
+print(dim(dfImmexFull))
+
+last_rows <- nrow(dfImmexFull)
+if (last_rows >= 10) {
+  print(dfImmexFull[c(1:5, (last_rows-4):last_rows), 1:min(10, ncol(dfImmexFull))])
+} else {
+  print(head(dfImmexFull, 10)[, 1:min(10, ncol(dfImmexFull))])
+}
+```
+
+### Variable names
+
+```{r variable names}
+variable_names <- read_csv("baseDeDatos/Manufactureros/diccionario_de_datos/diccionario_datos_immex_manu_ent_mensual_2007_2025.csv", show_col_types = FALSE)
+names(variable_names)
+kbl(variable_names[,c(2,3,6)]) %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed"), full_width = FALSE)
+
+dfMun <- read_csv("baseDeDatos/Manufactureros/catalogos/tc_municipio.csv", show_col_types = FALSE)
+dfMun %>%
+  kbl() %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed"), full_width = FALSE)
+
+dfEnt <- read_csv("baseDeDatos/Manufactureros/catalogos/tc_entidad.csv", show_col_types = FALSE)
+```
+
+### Primera aproximación a los datos
+
+```{r first look at data}
+dfImmexMun <- dfImmexFull %>%
+  filter(ID_MUNICIPIO != "999", !is.na(ID_MUNICIPIO)) %>%
+  group_by(ID_MUNICIPIO) %>%
+  summarise(
+    avg_establishments = mean(NUM_DE_ESTAB_ACT, na.rm = TRUE),
+    avg_operational_workers = mean(H114A, na.rm = TRUE),
+    avg_administrative_workers = mean(H200A, na.rm = TRUE),
+    avg_hours_operational = mean(H114D, na.rm = TRUE),
+    avg_hours_administrative = mean(H200D, na.rm = TRUE),
+    avg_payroll_operational = mean(J114A, na.rm = TRUE),
+    avg_payroll_administrative = mean(J200A, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+top10_mun <- dfImmexMun %>%
+  arrange(desc(avg_establishments)) %>%
+  slice_head(n = 10) %>%
+  left_join(dfMun, by = "ID_MUNICIPIO") %>%
+  select(NOM_MUNICIPIO, ID_MUNICIPIO, everything())
+
+top10_mun %>%
+  kbl(
+    col.names = c(
+      "Municipio",
+      "ID Municipio",
+      "Promedio de establecimientos",
+      "Promedio trabajadores operativos",
+      "Promedio trabajadores administrativos",
+      "Promedio horas operativos",
+      "Promedio horas administrativos",
+      "Promedio nómina operativos",
+      "Promedio nómina administrativos",
+      "Entidad"
+    ),
+    format.args = list(big.mark = ","),
+    caption = "Top 10 municipios con mayor promedio de establecimientos IMMEX",
+    centering = TRUE
+  ) %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed"), full_width = FALSE)
+
+dfImmexMunAnio <- dfImmexFull %>%
+  filter(ID_MUNICIPIO != "999", !is.na(ID_MUNICIPIO)) %>%
+  group_by(ANIO, ID_MUNICIPIO) %>%
+  summarise(
+    AverMunAnioEmpresas = mean(NUM_DE_ESTAB_ACT, na.rm = TRUE),
+    AverMunAnioOperativos = mean(H114A, na.rm = TRUE),
+    AverMunAnioAdministrativos = mean(H200A, na.rm = TRUE),
+    AverMunHoursWorkedOperaTec = mean(H114D, na.rm = TRUE),
+    AverMunPayrollOperaTec = mean(J114A, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+dfImmexMunAnioNames <- left_join(dfImmexMunAnio, dfMun, by = "ID_MUNICIPIO")
+
+g <- ggplot(dfImmexMunAnioNames) +
+  geom_line(aes(x = ANIO, y = AverMunAnioEmpresas, group = NOM_MUNICIPIO, color = as.factor(NOM_MUNICIPIO))) +
+  labs(title = "Número de empresas IMMEX por municipio a lo largo del tiempo",
+       x = "Año", y = "Número de empresas IMMEX", color = "Municipio") +
+  theme_minimal() 
+  #theme(legend.position = "bottom", legend.direction = "horizontal") +
+  #guides(color = guide_legend(nrow = 1, byrow = TRUE))
+print(g)
+```
+

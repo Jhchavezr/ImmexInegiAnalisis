@@ -1,0 +1,14 @@
+# R
+.Rhistory
+.RData
+.Rproj.user/
+.Ruserdata
+.Rhistory
+.Ruserdata
+
+# RStudio project files
+.Rproj.user/
+*.Rproj
+
+# ignore large raw data by default (remove if you want to track datasets)
+baseDeDatos/
