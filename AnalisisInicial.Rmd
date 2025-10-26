@@ -2,7 +2,13 @@
 title: "Análisis Inicial"
 author: "Ph.D. Jorge Chávez"
 date: "2025-10-25"
-output: pdf_document
+output:
+  html_document:
+    toc: true
+    toc_depth: 3
+    toc_float:
+      collapsed: false
+      smooth_scroll: true
 ---
 
 ```{r setup, include=FALSE}
@@ -17,7 +23,7 @@ suppressPackageStartupMessages({
 })
 ```
 
-## Análisis inicial de la información
+## Análisis inicial de la información Agrupada por Municipios
 
 Procesamiento de la base de datos
 
@@ -123,4 +129,31 @@ g <- ggplot(dfImmexMunAnioNames) +
   #guides(color = guide_legend(nrow = 1, byrow = TRUE))
 print(g)
 ```
+
+## Ejemplo de Microdatos (a consultar via INEGI)
+
+```{r read_microdatos, echo=FALSE}
+# path to example microdata
+csv_path <- "baseDeDatos/Microdatos/EjemploManufacturas.csv"
+
+if (!file.exists(csv_path)) {
+  stop("File not found: ", csv_path)
+}
+
+# read safely
+dfExample <- readr::read_csv(csv_path, show_col_types = FALSE)
+
+# show dimension
+cat("Dimensions (rows, cols):", paste(dim(dfExample), collapse = " x "), "\n\n")
+
+# show first 5 rows and first 5 variables (handle if fewer than 5 cols)
+ncols_show <- min(5, ncol(dfExample))
+print(dfExample[1: min(5, nrow(dfExample)), 1:ncols_show])
+
+# show available variables
+cat("\nAvailable variables (column names):\n")
+print(names(dfExample))
+```
+
+
 
