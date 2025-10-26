@@ -9,4 +9,4 @@ Contents:
 
 To render the report:
 1. Install R and rmarkdown, then run:
-   R -e "rmarkdown::render('AnalisisInicial.Rmd')"
+   R -e "rmarkdown::render('AnalisisInicial.Rmd')"# ImmexInegiAnalisis
